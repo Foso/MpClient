@@ -3,7 +3,7 @@ package de.jensklingenberg.mpclient
 import io.ktor.client.*
 import kotlin.reflect.KClass
 
-class LastImpl(val httpclient: HttpClient) : Last {
+class LastImpl(val httpclient: MyHttp) : Last {
 
     override fun <T> createIt(kClass: KClass<*>): T {
         return MyInjector()

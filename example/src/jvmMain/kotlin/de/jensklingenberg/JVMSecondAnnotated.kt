@@ -4,6 +4,7 @@ package de.jensklingenberg
 import de.jensklingenberg.mpclient.Inject
 import de.jensklingenberg.mpclient.Last
 import de.jensklingenberg.mpclient.LastImpl
+import de.jensklingenberg.mpclient.MyHttp
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
@@ -26,9 +27,9 @@ fun main() {
 
 suspend fun test() {
 
-    val cli =  HttpClient(CIO) {
+    val cli =  MyHttp(HttpClient(CIO) {
         install(JsonFeature)
-    }
+    })
 
     val hall = MpClient(cli).createIt<TestApi>(TestApi::class)
 
@@ -38,7 +39,7 @@ suspend fun test() {
 }
 
 
-class MpClient( var httpclient2: HttpClient = HttpClient(CIO)) : Last by LastImpl(httpclient2) {
+class MpClient( var httpclient2: MyHttp = MyHttp(HttpClient(CIO))) : Last by LastImpl(httpclient2) {
 
     val httpclient = httpclient2
 

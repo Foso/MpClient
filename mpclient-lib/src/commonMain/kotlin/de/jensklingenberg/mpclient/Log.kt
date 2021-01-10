@@ -4,7 +4,6 @@ import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
-import kotlin.native.concurrent.ThreadLocal
 import kotlin.reflect.KClass
 
 
@@ -27,3 +26,4 @@ interface Last{
     @Inject
     fun <T> createIt(kClass: KClass<*>): T
 }
+

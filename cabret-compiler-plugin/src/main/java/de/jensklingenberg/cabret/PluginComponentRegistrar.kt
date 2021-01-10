@@ -49,6 +49,7 @@ class PluginComponentRegistrar : ComponentRegistrar {
 
             import io.ktor.client.*
             import io.ktor.client.request.*
+            import de.jensklingenberg.mpclient.MyHttp
             
             interface StubInterface{
                 fun funStub()
@@ -59,7 +60,7 @@ class PluginComponentRegistrar : ComponentRegistrar {
             override fun funStub(){}
             }
             
-            fun api2(httpClient: HttpClient) = object : TestApi {
+            fun api2(httpClient: MyHttp) = object : TestApi {
             
                 override suspend fun getPosts(): List<Post> {
                     return httpClient.get("https://jsonplaceholder.typicode.com/posts")
