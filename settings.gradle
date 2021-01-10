@@ -1,0 +1,20 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        jcenter()
+        mavenCentral()
+    }
+}
+includeBuild 'cabret-gradle'
+
+include 'example'
+include ':cabret-compiler-plugin-native'
+include ':cabret-compiler-plugin'
+
+include ':cabret-log'
+
+include ':cabret-compiler-runtime'
+include ':mpclient-lib'
+
+enableFeaturePreview("GRADLE_METADATA")
+

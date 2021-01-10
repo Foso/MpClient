@@ -1,0 +1,46 @@
+buildscript {
+
+
+
+    ext {
+        kotlin_version = '1.4.21'
+    }
+    repositories {
+        mavenLocal()
+        google()
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:4.0.2"
+        classpath "de.jensklingenberg.cabret:cabret-gradle:1.0.0"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.bmuschko:gradle-nexus-plugin:2.3.1'
+
+        classpath 'com.vanniktech:gradle-maven-publish-plugin:0.13.0'
+        classpath 'org.jetbrains.dokka:dokka-gradle-plugin:1.4.20'
+    }
+
+}
+
+plugins {
+    id 'org.jetbrains.kotlin.multiplatform' version '1.4.21' apply false
+    id "maven"
+
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://maven.google.com" }
+        maven { url "https://plugins.gradle.org/m2/" }
+    }
+}
+
+
+
+
+//./gradlew :example:clean :example:build --no-daemon -Dorg.gradle.debug=true -Dkotlin.compiler.execution.strategy="in-process" -Dkotlin.daemon.jvm.options="-Xdebug,-Xrunjdwp:transport=dt_socket\,address=5005\,server=y\,suspend=n"
