@@ -1,19 +1,25 @@
 package de.jensklingenberg
 
-import de.jensklingenberg.mpclient.GET
-import de.jensklingenberg.mpclient.MyHttp
+
+import de.jensklingenberg.model.Post
 import de.jensklingenberg.mpclient.RestService
-import io.ktor.client.request.*
+import de.jensklingenberg.mpclient.http.BODY
+import de.jensklingenberg.mpclient.http.GET
+import de.jensklingenberg.mpclient.http.PATH
+import de.jensklingenberg.mpclient.http.POST
 
-interface TestApi: RestService {
+interface TestApi : RestService {
 
-    @GET("Heydu")
+    @GET("posts")
     suspend fun getPosts(): List<Post>
+
+    @GET("posts/{userId}")
+    suspend fun getPost(@PATH("userId")myUserId: Int = 4): Post
+
+    @POST("posts")
+    suspend fun postPost(@BODY myUserId: Post): Post
+
+    suspend fun getPosts2(userId: Int = 4, name: String = "Hallo"): Map<String,Post>
+
 }
 
-class Testi(val http: MyHttp) : TestApi{
-    override suspend fun getPosts(): List<Post> {
-        return http.httpClient.get("dddd")
-    }
-
-}
