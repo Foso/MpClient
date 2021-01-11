@@ -19,17 +19,6 @@ fun main() {
         test()
     }
 }
-suspend fun test1() {
-    val tt = HttpClient(CIO) {
-        install(JsonFeature)
-    }
-    val message = tt.post<Post> {
-        url("https://jsonplaceholder.typicode.com/posts")
-        contentType(ContentType.Application.Json)
-        body = Post(1,1,"foo","bar")
-    }
-    println(message.userId)
-}
 
 suspend fun test() {
 
@@ -39,11 +28,11 @@ suspend fun test() {
 
     val hall = MpClient(cli).createIt<TestApi>(TestApi::class)
 
-    print(hall.postPost(Post(1,1,"foo11","bar")).title)
-
+    println(hall.postPost(Post(1,1,"foo11","bar")).title)
+    println(hall.getPosts().size)
+    println(hall.getPost(4))
+    println(hall.getPostsByUserId(1).size)
 }
 
 
-class MpClient(override var httpclient: MyHttp = MyHttp(HttpClient(CIO))) : Last by LastImpl(httpclient){
-
-}
+class MpClient(override var httpclient: MyHttp = MyHttp(HttpClient(CIO))) : Last by LastImpl(httpclient)

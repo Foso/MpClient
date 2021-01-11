@@ -24,6 +24,11 @@ sealed class MyAnnotation {
         class GET(override val path: String) : Request(path)
         class POST(override val path: String) : Request(path)
     }
+
+    sealed class Param(open val path: String) : MyAnnotation() {
+        class Body() : Param("")
+        class Path(override val path: String) : Param("")
+    }
 }
 
 data class MyType(val name: String)
@@ -53,20 +58,52 @@ class PluginComponentRegistrar : ComponentRegistrar {
                         var funcText = ""
                         ktClass.children.filterIsInstance<KtClassBody>()
                             .first().children.filterIsInstance<KtNamedFunction>().forEach {
+                                var errorFound = false
+                                var errorMessage = ""
+                                var bodyDataName = ""
                                 val funcAnnos = it.getMyAnnos()
-                                val getAnno: MyAnnotation.Request? = funcAnnos.filterIsInstance<MyAnnotation.Request>().firstOrNull()
-                                var pathUrl = (getAnno?.path ?: "")
+
+
+
+                                val requestAnno: List<MyAnnotation.Request> =
+                                    funcAnnos.filterIsInstance<MyAnnotation.Request>()
+
+                                if (requestAnno.isEmpty()) {
+                                    errorFound = true
+                                    errorMessage = "HTTP method annotation is required (e.g., @GET, @POST, etc.)."
+                                }else if(requestAnno.size>1){
+                                    errorFound = true
+                                    errorMessage = "Only one HTTP method is allowed. Found: "+requestAnno.joinToString(separator =  " and ") { it::class.simpleName?:"" }
+                                }
+                                val myRequestAnno = requestAnno.first()
+
+                                val bodyAnnoL: MutableList<MyAnnotation.Param.Body> = mutableListOf()
+                                var pathUrl = (requestAnno.first().path ?: "")
 
                                 var funcParamsText = "(" + it.valueParameters.joinToString(separator = ",") {
 
-                                    val paramName = it.name
+                                    val paramName = it.name ?: ""
                                     val type = it.text.substringAfter(":").substringBefore("=")
-                                    it.getMyParamAnno().filterIsInstance<MyAnnotation.Request.GET>().forEach {
+                                    val paramsAnno = it.getMyParamAnno()
+                                    paramsAnno.filterIsInstance<MyAnnotation.Param.Path>().forEach {
                                         pathUrl = pathUrl.replace("{${it.path}}", "\$$paramName")
+                                    }
+
+                                    if (myRequestAnno is MyAnnotation.Request.POST) {
+
+                                        paramsAnno.filterIsInstance<MyAnnotation.Param.Body>().firstOrNull()?.let {
+                                            bodyDataName = paramName
+                                            bodyAnnoL.add(it)
+                                        }
                                     }
 
                                     "$paramName : $type"
                                 }
+                                if (bodyAnnoL.toList().size > 1) {
+                                    errorFound = true
+                                    errorMessage = "Multiple @Body method annotations found"
+                                }
+
                                 funcParamsText += ")"
 
                                 val returType = it.text.substringAfterLast(":")
@@ -75,15 +112,23 @@ class PluginComponentRegistrar : ComponentRegistrar {
 
                                 val myFunc = MyFunction(funName, MyType(returType), isSuspend = true)
 
-                                val body = if (getAnno == null) {
-                                    """ throw IllegalArgumentException("HTTP method annotation is required (e.g., @GET, @POST, etc.).") """
+                                val body = if (errorFound) {
+                                    """ throw IllegalArgumentException("$errorMessage") """
                                 } else {
 
-                                    val requestFuncName = when(getAnno){
+                                    val requestFuncName = when (myRequestAnno) {
                                         is MyAnnotation.Request.GET -> """ return $myHttpClientArgName.get("$pathUrl") """
                                         is MyAnnotation.Request.POST -> {
-                                            val bodyDataName = "myUserId"
-                                            """ return $myHttpClientArgName.post("$pathUrl",$bodyDataName) """
+                                            when (bodyAnnoL) {
+                                                null -> {
+                                                    """ throw IllegalArgumentException("@POST found without a @Body") """
+                                                }
+                                                else -> {
+
+                                                    """ return $myHttpClientArgName.post("$pathUrl",$bodyDataName) """
+                                                }
+                                            }
+
                                         }
                                     }
                                     requestFuncName
@@ -110,7 +155,7 @@ class PluginComponentRegistrar : ComponentRegistrar {
 
                         val secTemp = Files.createTempDirectory("mytemp")
                         val tempFile = File(secTemp.toAbsolutePath().toString() + "/temp.kt").writeText(testClass)
-                         configuration.addKotlinSourceRoot(secTemp.toAbsolutePath().toString() + "/temp.kt", true)
+                        configuration.addKotlinSourceRoot(secTemp.toAbsolutePath().toString() + "/temp.kt", true)
 
                     }
                 }
@@ -133,17 +178,20 @@ class PluginComponentRegistrar : ComponentRegistrar {
         ktFile.importList?.children?.joinToString(separator = "\n") { it.text }
 }
 
-private fun KtParameter.getMyParamAnno(): List<MyAnnotation> {
-    val annos = mutableListOf<MyAnnotation>()
+private fun KtParameter.getMyParamAnno(): List<MyAnnotation.Param> {
+    val annos = mutableListOf<MyAnnotation.Param>()
     this.annotationEntries.forEach {
         val annoName = it.text.replace("@", "").substringBefore("(")//it.shortName?.identifier
         when (annoName) {
-            "PATH" -> {
+            "Path" -> {
                 it.valueArguments.forEach {
                     val pathValue =
                         it.getArgumentExpression()?.text?.substringAfter("\"")?.substringBeforeLast("\"") ?: ""
-                    annos.add(MyAnnotation.Request.GET(pathValue))
+                    annos.add(MyAnnotation.Param.Path(pathValue))
                 }
+            }
+            "Body" -> {
+                annos.add(MyAnnotation.Param.Body())
             }
         }
     }
