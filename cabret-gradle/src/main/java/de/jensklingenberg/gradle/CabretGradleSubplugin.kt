@@ -2,16 +2,23 @@ package de.jensklingenberg.gradle
 
 import org.gradle.api.Project
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.SourceSetContainer
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilation
 import org.jetbrains.kotlin.gradle.plugin.KotlinCompilerPluginSupportPlugin
 import org.jetbrains.kotlin.gradle.plugin.SubpluginArtifact
 import org.jetbrains.kotlin.gradle.plugin.SubpluginOption
+import org.jetbrains.kotlin.gradle.dsl.*
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinMultiplatformPlugin
 
 open class CabretGradleExtension {
     var enabled: Boolean = true
     var version: String = "1.0.2"
 }
 
+
+
+
+//val Project.multiplatformExtension: KotlinMultiplatformPlugin? get() = project.extensions.findByType(KotlinMultiplatformExtension::class.java)
 
 class CabretGradleSubplugin : KotlinCompilerPluginSupportPlugin {
 
@@ -24,14 +31,18 @@ class CabretGradleSubplugin : KotlinCompilerPluginSupportPlugin {
     }
 
     override fun apply(target: Project) {
+
         target.extensions.create(
             "cabret",
             CabretGradleExtension::class.java
         )
+        target.buildDir
         super.apply(target)
     }
 
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
+        kotlinCompilation.defaultSourceSet
+
         gradleExtension = kotlinCompilation.target.project.extensions.findByType(CabretGradleExtension::class.java)
             ?: CabretGradleExtension()
         val project = kotlinCompilation.target.project

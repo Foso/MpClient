@@ -42,7 +42,7 @@ kotlin {
             dependencies {
                 implementation kotlin('stdlib-common')
                 implementation "io.ktor:ktor-client-core:1.5.0"
-                implementation("io.ktor:ktor-client-cio:1.5.0")
+                //implementation("io.ktor:ktor-client-cio:1.5.0")
             }
         }
         commonTest {
@@ -67,6 +67,7 @@ kotlin {
         jvmMain {
             dependencies {
                 implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
+
             }
         }
         jsTest {

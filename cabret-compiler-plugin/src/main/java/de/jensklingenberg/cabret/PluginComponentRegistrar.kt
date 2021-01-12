@@ -12,6 +12,7 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.compiler.createSourceFilesFromSourceRoots
 
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import org.jetbrains.kotlin.com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.psi.*
@@ -157,11 +158,61 @@ class PluginComponentRegistrar : ComponentRegistrar {
                         val tempFile = File(secTemp.toAbsolutePath().toString() + "/temp.kt").writeText(testClass)
                         configuration.addKotlinSourceRoot(secTemp.toAbsolutePath().toString() + "/temp.kt", true)
 
+
+
+                        val extFun = """ 
+package example.commonMain
+
+import de.jensklingenberg.TestApi
+import de.jensklingenberg.model.Post
+import de.jensklingenberg.mpclient.MyHttp
+import io.ktor.client.*
+import io.ktor.client.features.*
+import kotlin.reflect.KClass
+
+            
+class _TestApiImpl(val myHttp: MyHttp): TestApi{
+    override suspend fun getPosts(): List<Post> {
+        return myHttp.get("posts")
+    }
+
+    override suspend fun getPost(myUserId: Int): Post {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun postPost(otherID: Post): Post {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun getPostsByUserId(myUserId: Int): List<Post> {
+        TODO("Not yet implemented")
+    }
+}           
+            
+            
+inline fun <reified T> MyHttp.dodo() : T {
+    return when(T::class.qualifiedName){
+        TestApi::class.qualifiedName->{
+            return _TestApiImpl(this) as T
+        }
+        else -> {
+            throw NotImplementedError()
+        }
+    }
+}
+
+class Hallo
+            
+        """.trimIndent()
+
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/").mkdir()
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt").writeText(extFun)
+                        configuration.addKotlinSourceRoot("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt", true)
+
                     }
                 }
             }
         }
-
 
 
         if (configuration[KEY_ENABLED] == false) {
