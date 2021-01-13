@@ -2,11 +2,7 @@ package de.jensklingenberg
 
 
 import de.jensklingenberg.model.Post
-import de.jensklingenberg.mpclient.Last
-import de.jensklingenberg.mpclient.LastImpl
-import de.jensklingenberg.mpclient.MyHttp
-import de.jensklingenberg.mpclient.KtorWrapper
-import example.commonMain.dodo
+import de.jensklingenberg.mpclient.*
 
 
 import io.ktor.client.*
@@ -15,34 +11,38 @@ import io.ktor.client.engine.cio.*
 import io.ktor.client.features.json.*
 import kotlinx.coroutines.runBlocking
 
+class MyClientImpl : MyClient {
+    override suspend fun <T> found(url: String): DataHolder<T> {
+        val string = "GEHEIM"
 
+        return DataHolder(string)
 
-fun main() {
-
-    runBlocking {
-        test()
     }
+
 }
+
+
+
 
 suspend fun test() {
 
-    val cli = MyHttp(ktorWrapper = KtorWrapper(HttpClient(CIO) {
-        install(JsonFeature)
-    }), baseUrl = "https://jsonplaceholder.typicode.com/")
+    val cli = MyHttp(baseUrl = "https://jsonplaceholder.typicode.com/").apply {
+        myClient = MyClientImpl()
+        ktorWrapper = KtorWrapper(HttpClient(CIO) {
+            install(JsonFeature)
+        })
+    }
 
-    val hall = MpClient(cli).createIt<TestApi>(TestApi::class)
+    /**
+     *  val hall = cli.dodo<TestApi>()
 
     println(hall.postPost(Post(1,1,"foo11","bar")).title)
     println(hall.getPosts().size)
     println(hall.getPost(4))
     println(hall.getPostsByUserId(1).size)
-  val test =  cli.dodo<TestApi>()
+     */
+ //   val test = cli.dodo<TestApi>()
 
-    println("TST  "+test.getPosts().size)
+   // println("TST  " + test.getPosts().size)
 
 }
-
-
-
-
-class MpClient(override var httpclient: MyHttp = MyHttp(ktorWrapper = KtorWrapper(HttpClient()))) : Last by LastImpl(httpclient)

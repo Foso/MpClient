@@ -5,6 +5,11 @@ import de.jensklingenberg.model.Post
 import de.jensklingenberg.mpclient.RestService
 import de.jensklingenberg.mpclient.http.*
 
+fun main() {
+
+}
+
+
 interface TestApi : RestService {
 
     @Headers(value = ["Accept: application/json", "DDDD"])

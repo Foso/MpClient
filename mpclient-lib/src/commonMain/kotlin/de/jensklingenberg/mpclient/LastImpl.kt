@@ -4,7 +4,7 @@ import io.ktor.client.*
 
 import kotlin.reflect.KClass
 
-class LastImpl(override var httpclient: MyHttp = MyHttp(ktorWrapper = KtorWrapper(HttpClient()))) : Last {
+class LastImpl(override var httpclient: MyHttp = MyHttp().apply { ktorWrapper = KtorWrapper(HttpClient()) }) : Last {
 
     fun MyClient(){
 

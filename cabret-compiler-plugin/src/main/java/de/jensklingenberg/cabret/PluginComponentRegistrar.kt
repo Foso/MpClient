@@ -65,16 +65,18 @@ class PluginComponentRegistrar : ComponentRegistrar {
                                 val funcAnnos = it.getMyAnnos()
 
 
-
                                 val requestAnno: List<MyAnnotation.Request> =
                                     funcAnnos.filterIsInstance<MyAnnotation.Request>()
 
                                 if (requestAnno.isEmpty()) {
                                     errorFound = true
                                     errorMessage = "HTTP method annotation is required (e.g., @GET, @POST, etc.)."
-                                }else if(requestAnno.size>1){
+                                } else if (requestAnno.size > 1) {
                                     errorFound = true
-                                    errorMessage = "Only one HTTP method is allowed. Found: "+requestAnno.joinToString(separator =  " and ") { it::class.simpleName?:"" }
+                                    errorMessage =
+                                        "Only one HTTP method is allowed. Found: " + requestAnno.joinToString(separator = " and ") {
+                                            it::class.simpleName ?: ""
+                                        }
                                 }
                                 val myRequestAnno = requestAnno.first()
 
@@ -159,9 +161,39 @@ class PluginComponentRegistrar : ComponentRegistrar {
                         configuration.addKotlinSourceRoot(secTemp.toAbsolutePath().toString() + "/temp.kt", true)
 
 
-
                         val extFun = """ 
-package example.commonMain
+package de.jensklingenberg
+
+import de.jensklingenberg.TestApi
+import de.jensklingenberg.mpclient.MyHttp
+import kotlin.reflect.KClass
+import de.jensklingenberg._TestApiImpl
+            
+inline fun <reified T> MyHttp.dodo() : T {
+    return when(T::class.qualifiedName){
+        TestApi::class.qualifiedName->{
+            _TestApiImpl(this) as T
+        }
+        else -> {
+            throw NotImplementedError()
+        }
+    }
+}
+
+                    """.trimIndent()
+
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/").mkdir()
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt").writeText(
+                            extFun
+                        )
+                        configuration.addKotlinSourceRoot(
+                            "/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt",
+                            true
+                        )
+
+
+                        val extFun3 = """ 
+package de.jensklingenberg
 
 import de.jensklingenberg.TestApi
 import de.jensklingenberg.model.Post
@@ -190,24 +222,16 @@ class _TestApiImpl(val myHttp: MyHttp): TestApi{
 }           
             
             
-inline fun <reified T> MyHttp.dodo() : T {
-    return when(T::class.qualifiedName){
-        TestApi::class.qualifiedName->{
-            return _TestApiImpl(this) as T
-        }
-        else -> {
-            throw NotImplementedError()
-        }
-    }
-}
-
-class Hallo
-            
         """.trimIndent()
 
-                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/").mkdir()
-                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt").writeText(extFun)
-                        configuration.addKotlinSourceRoot("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt", true)
+
+                        val secTemp3 = Files.createTempDirectory("mytemp")
+                        val tempFile3 =
+                            File(secTemp3.toAbsolutePath().toString() + "/_TestApiImpl.kt").writeText(extFun3)
+                        configuration.addKotlinSourceRoot(
+                            secTemp3.toAbsolutePath().toString() + "/_TestApiImpl.kt",
+                            true
+                        )
 
                     }
                 }
