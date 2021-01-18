@@ -9,7 +9,6 @@ plugins {
 }
 
 apply plugin: 'kotlin-multiplatform'
-apply plugin: 'com.android.library'
 
 repositories {
     google()
@@ -26,9 +25,7 @@ kotlin {
         binaries.executable()
     }
     linuxX64("linux")
-    android() {
-        publishLibraryVariants("release", "debug")
-    }
+
 
     ios('ios') {
         binaries {
@@ -75,7 +72,7 @@ kotlin {
                 implementation kotlin('test-js')
             }
         }
-        androidMain {}
+
 
         iosMain {
 
@@ -85,37 +82,6 @@ kotlin {
 
 }
 
-android {
-    compileSdkVersion 30
-    defaultConfig {
-        minSdkVersion 21
-        targetSdkVersion 30
-        versionCode 1
-        versionName '1.0.3'
-        testInstrumentationRunner 'android.support.test.runner.AndroidJUnitRunner'
-    }
-    sourceSets {
-        main {
-            manifest.srcFile 'src/androidMain/AndroidManifest.xml'
-            java.srcDirs = ['src/androidMain/kotlin']
-            res.srcDirs = ['src/androidMain/res']
-        }
-
-        test {
-            java.srcDirs = ['src/androidTest/kotlin']
-            res.srcDirs = ['src/androidTest/res']
-        }
-    }
-    testOptions.unitTests.includeAndroidResources = true
-
-    buildTypes {
-        debug {}
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-}
 
 //build.finalizedBy(publishToMavenLocal)
 

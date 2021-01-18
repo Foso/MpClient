@@ -44,7 +44,9 @@ class PluginComponentRegistrar : ComponentRegistrar {
         project: MockProject,
         configuration: CompilerConfiguration
     ) {
-
+        if (configuration[KEY_ENABLED] == false) {
+            return
+        }
         val myHttpClientArgName = "httpClient"
         val myHttpClientClassName = "MyHttp"
         val myHttpPackage = "de.jensklingenberg.mpclient.$myHttpClientClassName"
@@ -224,14 +226,9 @@ class _TestApiImpl(val myHttp: MyHttp): TestApi{
             
         """.trimIndent()
 
-
-                        val secTemp3 = Files.createTempDirectory("mytemp")
-                        val tempFile3 =
-                            File(secTemp3.toAbsolutePath().toString() + "/_TestApiImpl.kt").writeText(extFun3)
-                        configuration.addKotlinSourceRoot(
-                            secTemp3.toAbsolutePath().toString() + "/_TestApiImpl.kt",
-                            true
-                        )
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/").mkdir()
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/Hallo.kt").writeText(extFun)
+                        configuration.addKotlinSourceRoot("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/Hallo.kt", true)
 
                     }
                 }
@@ -239,9 +236,7 @@ class _TestApiImpl(val myHttp: MyHttp): TestApi{
         }
 
 
-        if (configuration[KEY_ENABLED] == false) {
-            return
-        }
+
         val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
 
 
