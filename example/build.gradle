@@ -47,7 +47,7 @@ kotlin {
         }
     }
 
-    js()
+
 
     sourceSets {
         commonMain {
@@ -82,7 +82,7 @@ kotlin {
         }
 
         jvmMain {
-            kotlin.srcDir('/Users/jklingenberg/Code/MpClient/example/build/generated/source')
+           // kotlin.srcDir('/Users/jklingenberg/Code/MpClient/example/build/generated/source')
             dependencies {
                 implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
                 implementation("io.ktor:ktor-client-core-jvm:1.5.0")
@@ -115,7 +115,7 @@ kotlin {
 }
 
 build {
-    dependsOn ':cabret-log:build'
+    //dependsOn ':cabret-log:build'
 
    // dependsOn ':cabret-compiler-plugin:build'
 

@@ -44,7 +44,9 @@ class PluginComponentRegistrar : ComponentRegistrar {
         project: MockProject,
         configuration: CompilerConfiguration
     ) {
-
+        if (configuration[KEY_ENABLED] == false) {
+            return
+        }
         val myHttpClientArgName = "httpClient"
         val myHttpClientClassName = "MyHttp"
         val myHttpPackage = "de.jensklingenberg.mpclient.$myHttpClientClassName"
@@ -205,9 +207,9 @@ class Hallo
             
         """.trimIndent()
 
-                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/").mkdir()
-                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt").writeText(extFun)
-                        configuration.addKotlinSourceRoot("/Users/jklingenberg/Code/MpClient/example/build/generated/source/de/jensklingenberg/Hallo.kt", true)
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/").mkdir()
+                        File("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/Hallo.kt").writeText(extFun)
+                        configuration.addKotlinSourceRoot("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg/Hallo.kt", true)
 
                     }
                 }
@@ -215,9 +217,7 @@ class Hallo
         }
 
 
-        if (configuration[KEY_ENABLED] == false) {
-            return
-        }
+
         val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
 
 

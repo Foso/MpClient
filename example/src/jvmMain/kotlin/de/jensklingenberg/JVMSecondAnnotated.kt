@@ -18,10 +18,8 @@ import kotlinx.coroutines.runBlocking
 
 
 fun main() {
+print(de.jensklingenberg.hallo())
 
-    runBlocking {
-        test()
-    }
 }
 
 suspend fun test() {
@@ -30,19 +28,11 @@ suspend fun test() {
         install(JsonFeature)
     }), baseUrl = "https://jsonplaceholder.typicode.com/")
 
-    val hall = MpClient(cli).createIt<TestApi>(TestApi::class)
+cli.dodo<TestApi>()
 
-    println(hall.postPost(Post(1,1,"foo11","bar")).title)
-    println(hall.getPosts().size)
-    println(hall.getPost(4))
-    println(hall.getPostsByUserId(1).size)
-  val test =  cli.dodo<TestApi>()
-
-    println("TST  "+test.getPosts().size)
 
 }
 
 
 
 
-class MpClient(override var httpclient: MyHttp = MyHttp(ktorWrapper = KtorWrapper(HttpClient()))) : Last by LastImpl(httpclient)
