@@ -1,12 +1,10 @@
 package de.jensklingenberg.mpclient
 
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlin.reflect.KClass
 
-interface MMClient {
-
-}
 
 class DataHolder<T>(var any: Any) {
 
@@ -42,20 +40,6 @@ interface MyClient {
     suspend fun <T> found(url: String): DataHolder<T>
 }
 
-class Holder<T>(var any: Any)
-
-class CallAdapter<P>(val ktorWrapper: KtorWrapper) {
-
-    fun supportedType(returnType: KClass<*>): Boolean {
-        return returnType is Flow<*>
-    }
-
-    fun <T> convert(data: T): Flow<T> = flow<T> {
-        emit(data)
-    }
-
-    inline fun <reified T : Any> classOfList(list: Call<T>) = T::class
-}
 
 class MyHttp(val baseUrl: String = "") {
     var ktorWrapper: KtorWrapper? = null
@@ -81,6 +65,34 @@ class MyHttp(val baseUrl: String = "") {
 
     inline fun <reified T : Any> classOfList(list: Call<T>) = T::class
 
+
+    inline fun <reified TReturn, reified PRequest> supget(url: String): TReturn {
+        //T is return type
+        //P is requested type
+
+        val callAdapter = CallAdapter()
+
+        val adapterList = listOf(callAdapter)
+
+        adapterList.firstOrNull { callAdapter.supportedType(TReturn::class) }?.let {
+            val datat = it.convert { get<PRequest>(url) }
+            return datat as TReturn
+        }
+
+        throw NotImplementedError()
+    }
 }
 
+
+class CallAdapter {
+
+    fun supportedType(returnType: KClass<*>): Boolean {
+        return returnType.qualifiedName == Flow::class.qualifiedName
+    }
+
+    fun <T> convert(namee: suspend () -> T): Flow<T> = flow<T> {
+        emit(namee())
+    }
+
+}
 

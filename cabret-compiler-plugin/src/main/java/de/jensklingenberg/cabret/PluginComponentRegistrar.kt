@@ -12,10 +12,10 @@ import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.compiler.createSourceFilesFromSourceRoots
 
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
-import org.jetbrains.kotlin.com.intellij.openapi.project.Project
 import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import java.io.BufferedReader
 import java.io.File
 import java.nio.file.Files
@@ -49,15 +49,20 @@ class PluginComponentRegistrar : ComponentRegistrar {
         }
         val buildPath = "/Users/jklingenberg/Code/MpClient/example/build/"
         val generatedPath = buildPath+"generated/src/jvmMain/kotlin/de/jensklingenberg/"
+        val generatedPathCommon = buildPath+"generated/src/commonMain/kotlin/de/jensklingenberg/"
+
         val myHttpClientArgName = "httpClient"
         val myHttpClientClassName = "MyHttp"
         val myHttpPackage = "de.jensklingenberg.mpclient.$myHttpClientClassName"
 
         val sourceFiles = createSourceFilesFromSourceRoots(configuration, project, configuration.kotlinSourceRoots)
+        val annotatedClass = mutableListOf<String>()
+
         sourceFiles.forEach { ktFile ->
             ktFile.children.filterIsInstance<KtClass>().forEach { ktClass ->
                 ktClass.getSuperTypeList()?.entries?.forEach {
                     if (ktClass.isInterface() && (it.text == "RestService")) {
+                        annotatedClass.add(ktClass.name!!)
                         val imports = getImportStatements(ktFile)
 
                         var funcText = ""
@@ -118,13 +123,22 @@ class PluginComponentRegistrar : ComponentRegistrar {
                                 val funName = it.name ?: ""
 
                                 val myFunc = MyFunction(funName, MyType(returType), isSuspend = true)
-
+                                it.isSupendFun()
                                 val body = if (errorFound) {
                                     """ throw IllegalArgumentException("$errorMessage") """
                                 } else {
 
                                     val requestFuncName = when (myRequestAnno) {
-                                        is MyAnnotation.Request.GET -> """ return $myHttpClientArgName.get("$pathUrl") """
+                                        is MyAnnotation.Request.GET -> {
+                                            //Flow<List<Post>>
+                                            if(nestedType(myFunc.returnType.name) && !it.isSupendFun()){
+                                                """ return $myHttpClientArgName.supget<${myFunc.returnType.name},${subType(myFunc.returnType.name)}>("$pathUrl") """
+                                            }else{
+                                                """ return $myHttpClientArgName.get("$pathUrl") """
+                                            }
+
+
+                                        }
                                         is MyAnnotation.Request.POST -> {
                                             when (bodyAnnoL) {
                                                 null -> {
@@ -141,8 +155,14 @@ class PluginComponentRegistrar : ComponentRegistrar {
                                     requestFuncName
                                 }
 
+                                val suspendKeywordText = if(it.isSupendFun()){
+                                    "suspend"
+                                }else{
+                                    ""
+                                }
+
                                 funcText += """
-                                override suspend fun ${myFunc.name}$funcParamsText: ${myFunc.returnType.name} {
+                                override $suspendKeywordText fun ${myFunc.name}$funcParamsText: ${myFunc.returnType.name} {
                                     $body
                                 }                          
                                 """
@@ -155,30 +175,11 @@ package de.jensklingenberg
 
 $imports
 import $myHttpPackage
-import de.jensklingenberg.model.Post
+//import de.jensklingenberg.model.Post
 import kotlinx.coroutines.flow.flow            
 class _${ktClass.name}Impl(val $myHttpClientArgName: $myHttpClientClassName): ${ktClass.name}{
-    override suspend fun getPosts(): List<Post> {
-        return $myHttpClientArgName.get("posts")
-    }
-
-    override suspend fun getPost(myUserId: Int): Post {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun postPost(otherID: Post): Post {
-        TODO("Not yet implemented")
-    }
-
-    override suspend fun getPostsByUserId(myUserId: Int): List<Post> {
-        TODO("Not yet implemented")
-    }
     
-    override fun getFlowPosts(): Flow<List<Post>> {
-         return flow {
-            emit($myHttpClientArgName.get<List<Post>>("posts"))
-         }
-    }
+    $funcText
     
                 }           
           
@@ -187,7 +188,7 @@ class _${ktClass.name}Impl(val $myHttpClientArgName: $myHttpClientClassName): ${
                         val generateSources = true
 
                         val genPath: String = if(generateSources){
-                            generatedPath
+                            generatedPathCommon
                         }else{
                             Files.createTempDirectory("mytemp").toAbsolutePath().toString()
                         }
@@ -199,22 +200,37 @@ class _${ktClass.name}Impl(val $myHttpClientArgName: $myHttpClientClassName): ${
                         )
 
 
-                        val extFun = """ 
+
+
+                    }
+                }
+            }
+
+
+        }
+
+        val serviceClassImport = annotatedClass.joinToString(separator = "\n") {
+            "import de.jensklingenberg.${it}\n import de.jensklingenberg._${it}Impl"
+        }
+
+        val whenBody = annotatedClass.joinToString(separator = "\n") {
+            "${it}::class.qualifiedName->{\n" +
+                    "          _${it}Impl(this) as T\n" +
+                    "}"
+        }
+
+        val extFun = """ 
 //Generated by MpClient            
 package de.jensklingenberg
 
-import de.jensklingenberg.${ktClass.name}
-import de.jensklingenberg._${ktClass.name}Impl
+$serviceClassImport
 
 import de.jensklingenberg.mpclient.MyHttp
-
-
                                       
-inline fun <reified T> MyHttp.dodo() : T {
+inline fun <reified T> MyHttp.create() : T {
    return when(T::class.qualifiedName){
-        ${ktClass.name}::class.qualifiedName->{
-          _${ktClass.name}Impl(this) as T
-        }
+        $whenBody
+        
         else -> {
             throw NotImplementedError()
         }
@@ -223,22 +239,16 @@ inline fun <reified T> MyHttp.dodo() : T {
             
         """.trimIndent()
 
-                        File(generatedPath).mkdirs()
-                        val hallo =
-                            File(generatedPath + "MpClientExt.kt")
-                        hallo.createNewFile()
-                        hallo.writeText(extFun)
-                        configuration.addKotlinSourceRoot(
-                            generatedPath + "MpClientExt.kt",
-                            true
-                        )
+        File(generatedPath).mkdirs()
+        val hallo =
+            File(generatedPath + "MpClientExt.kt")
+        hallo.createNewFile()
+        hallo.writeText(extFun)
+        configuration.addKotlinSourceRoot(
+            generatedPath + "MpClientExt.kt",
+            true
+        )
 
-                    }
-                }
-            }
-
-
-        }
 
 
         val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
@@ -248,8 +258,24 @@ inline fun <reified T> MyHttp.dodo() : T {
 
     }
 
+    private fun nestedType(name: String): Boolean {
+        return name.contains("<") && subType(name).isNotEmpty()
+        //Flow<List<Post>>
+
+    }
+
+    private fun subType(name: String): String {
+        return name.substringAfter("<").substringBeforeLast(">")
+        //Flow<List<Post>>
+
+    }
+
     private fun getImportStatements(ktFile: KtFile) =
         ktFile.importList?.children?.joinToString(separator = "\n") { it.text }
+}
+
+private fun KtNamedFunction.isSupendFun(): Boolean {
+    return this.modifierList?.allChildren?.any { it.text=="suspend" }?:false
 }
 
 private fun KtParameter.getMyParamAnno(): List<MyAnnotation.Param> {
