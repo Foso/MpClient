@@ -45,7 +45,8 @@ class CabretGradleSubplugin : KotlinCompilerPluginSupportPlugin {
     override fun applyToCompilation(kotlinCompilation: KotlinCompilation<*>): Provider<List<SubpluginOption>> {
         kotlinCompilation.defaultSourceSet {
           //  kotlin.srcDirs("/Users/jklingenberg/Code/MpClient/example/src/generated/kotlin/de/jensklingenberg")
-            kotlin.srcDirs("/Users/jklingenberg/Code/MpClient/example/build/generated/kotlin/de/jensklingenberg")
+            kotlin.srcDirs(kotlinCompilation.target.project.buildDir.path+"/generated/src/commonMain/kotlin/de/jensklingenberg")
+            kotlin.srcDirs(kotlinCompilation.target.project.buildDir.path+"/generated/src/jvmMain/kotlin/de/jensklingenberg")
 
         }
 

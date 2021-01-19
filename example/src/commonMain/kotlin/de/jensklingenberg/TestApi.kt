@@ -4,11 +4,7 @@ package de.jensklingenberg
 import de.jensklingenberg.model.Post
 import de.jensklingenberg.mpclient.RestService
 import de.jensklingenberg.mpclient.http.*
-
-fun main() {
-
-}
-
+import kotlinx.coroutines.flow.Flow
 
 interface TestApi : RestService {
 
@@ -22,9 +18,12 @@ interface TestApi : RestService {
     @POST("posts")
     suspend fun postPost(@Body otherID: Post): Post
 
-
     @GET("posts?userId={userId}")
     suspend fun getPostsByUserId(@Path("userId") myUserId: Int): List<Post>
+
+    @Headers(value = ["Accept: application/json", "DDDD"])
+    @GET("posts")
+    fun getFlowPosts(): Flow<List<Post>>
 
 }
 
