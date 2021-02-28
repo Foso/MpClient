@@ -6,14 +6,21 @@ import kastree.ast.Node
 import kastree.ast.psi.Parser
 import org.jetbrains.kotlin.backend.common.extensions.IrGenerationExtension
 import org.jetbrains.kotlin.cli.common.CLIConfigurationKeys
+import org.jetbrains.kotlin.cli.common.config.KotlinSourceRoot
 import org.jetbrains.kotlin.cli.common.config.addKotlinSourceRoot
 import org.jetbrains.kotlin.cli.common.config.kotlinSourceRoots
 import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.cli.jvm.compiler.createSourceFilesFromSourceRoots
+import org.jetbrains.kotlin.cli.jvm.compiler.report
 
 import org.jetbrains.kotlin.com.intellij.mock.MockProject
+import org.jetbrains.kotlin.com.intellij.openapi.project.Project
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.StandardFileSystems
+import org.jetbrains.kotlin.com.intellij.openapi.vfs.VirtualFileManager
+import org.jetbrains.kotlin.com.intellij.psi.PsiManager
 import org.jetbrains.kotlin.compiler.plugin.ComponentRegistrar
 import org.jetbrains.kotlin.config.CompilerConfiguration
+import org.jetbrains.kotlin.extensions.CollectAdditionalSourcesExtension
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.psiUtil.allChildren
 import java.io.BufferedReader
@@ -38,6 +45,17 @@ data class MyParam(val name: String, val type: MyType)
 
 data class MyFunction(val name: String, val returnType: MyType, val isSuspend: Boolean = false)
 
+fun File.toKtFile(project: Project): KtFile {
+    val fileSystem =
+        VirtualFileManager.getInstance().getFileSystem(StandardFileSystems.FILE_PROTOCOL)
+    val psiManager = PsiManager.getInstance(project)
+
+    return (fileSystem.findFileByPath(absolutePath)
+        ?: error("can't fine virtual file : $absolutePath"))
+        .let { psiManager.findFile(it) ?: error("can't fine psi file : $absolutePath") }
+        .let { KtFile(it.viewProvider, false) }
+}
+
 @AutoService(ComponentRegistrar::class)
 class PluginComponentRegistrar : ComponentRegistrar {
     override fun registerProjectComponents(
@@ -48,8 +66,8 @@ class PluginComponentRegistrar : ComponentRegistrar {
             return
         }
         val buildPath = "/Users/jklingenberg/Code/MpClient/example/build/"
-        val generatedPath = buildPath+"generated/src/jvmMain/kotlin/de/jensklingenberg/"
-        val generatedPathCommon = buildPath+"generated/src/commonMain/kotlin/de/jensklingenberg/"
+        val generatedPath = buildPath + "generated/src/jvmMain/kotlin/de/jensklingenberg/"
+        val generatedPathCommon = buildPath + "generated/src/commonMain/kotlin/de/jensklingenberg/"
 
         val myHttpClientArgName = "httpClient"
         val myHttpClientClassName = "MyHttp"
@@ -131,9 +149,13 @@ class PluginComponentRegistrar : ComponentRegistrar {
                                     val requestFuncName = when (myRequestAnno) {
                                         is MyAnnotation.Request.GET -> {
                                             //Flow<List<Post>>
-                                            if(nestedType(myFunc.returnType.name) && !it.isSupendFun()){
-                                                """ return $myHttpClientArgName.supget<${myFunc.returnType.name},${subType(myFunc.returnType.name)}>("$pathUrl") """
-                                            }else{
+                                            if (nestedType(myFunc.returnType.name) && !it.isSupendFun()) {
+                                                """ return $myHttpClientArgName.supget<${myFunc.returnType.name},${
+                                                    subType(
+                                                        myFunc.returnType.name
+                                                    )
+                                                }>("$pathUrl") """
+                                            } else {
                                                 """ return $myHttpClientArgName.get("$pathUrl") """
                                             }
 
@@ -155,16 +177,16 @@ class PluginComponentRegistrar : ComponentRegistrar {
                                     requestFuncName
                                 }
 
-                                val suspendKeywordText = if(it.isSupendFun()){
+                                val suspendKeywordText = if (it.isSupendFun()) {
                                     "suspend"
-                                }else{
+                                } else {
                                     ""
                                 }
 
                                 funcText += """
-                                override $suspendKeywordText fun ${myFunc.name}$funcParamsText: ${myFunc.returnType.name} {
-                                    $body
-                                }                          
+override $suspendKeywordText fun ${myFunc.name}$funcParamsText: ${myFunc.returnType.name} {
+    $body
+}                          
                                 """
 
                             }
@@ -187,9 +209,9 @@ class _${ktClass.name}Impl(val $myHttpClientArgName: $myHttpClientClassName): ${
         """.trimIndent()
                         val generateSources = true
 
-                        val genPath: String = if(generateSources){
+                        val genPath: String = if (generateSources) {
                             generatedPathCommon
-                        }else{
+                        } else {
                             Files.createTempDirectory("mytemp").toAbsolutePath().toString()
                         }
 
@@ -198,8 +220,6 @@ class _${ktClass.name}Impl(val $myHttpClientArgName: $myHttpClientClassName): ${
                             genPath + "/_${ktClass.name}Impl.kt",
                             true
                         )
-
-
 
 
                     }
@@ -244,11 +264,12 @@ inline fun <reified T> MyHttp.create() : T {
             File(generatedPath + "MpClientExt.kt")
         hallo.createNewFile()
         hallo.writeText(extFun)
-        configuration.addKotlinSourceRoot(
-            generatedPath + "MpClientExt.kt",
-            true
-        )
-
+        if (true){//configuration.kotlinSourceRoots.any { it.path == hallo.path }) {
+            configuration.addKotlinSourceRoot(
+                generatedPath + "MpClientExt.kt",
+                true
+            )
+        }
 
 
         val messageCollector = configuration.get(CLIConfigurationKeys.MESSAGE_COLLECTOR_KEY, MessageCollector.NONE)
@@ -275,7 +296,7 @@ inline fun <reified T> MyHttp.create() : T {
 }
 
 private fun KtNamedFunction.isSupendFun(): Boolean {
-    return this.modifierList?.allChildren?.any { it.text=="suspend" }?:false
+    return this.modifierList?.allChildren?.any { it.text == "suspend" } ?: false
 }
 
 private fun KtParameter.getMyParamAnno(): List<MyAnnotation.Param> {

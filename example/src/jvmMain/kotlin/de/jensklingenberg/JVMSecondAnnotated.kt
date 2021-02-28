@@ -19,16 +19,7 @@ import kotlin.reflect.KClass
 fun main() {
 
 
-
-
     runBlocking {
-
-        mutableListOf<Post>()
-        test<Flow<List<Post>>, String>()
-
-        val http = HttpClient(CIO) {
-            install(JsonFeature)
-        }
 
         val cli = MyHttp(baseUrl = "https://jsonplaceholder.typicode.com/").apply {
             ktorWrapper = KtorWrapper(HttpClient(CIO) {
@@ -44,11 +35,6 @@ fun main() {
         }
 
     }
-}
-
-
-inline fun <reified T, P> test() {
-    // println(T::class.java.cast(String))
 }
 
 
